@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Banknote, CreditCard, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/cards";
@@ -43,6 +43,14 @@ function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
+  // Demo profile is restored from local storage after hydration, so prefill once it arrives.
+  useEffect(() => {
+    if (!user) return;
+    setName((v) => v || user.name);
+    setMobile((v) => v || user.mobile.replace(/\D/g, ""));
+    setVillage((v) => v || user.village);
+  }, [user]);
+
   if (cart.length === 0) {
     return (
       <>
@@ -68,10 +76,10 @@ function CheckoutPage() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
-    if (name.trim().length < 2) next.name = "Please enter your name";
-    if (!/^[0-9]{10}$/.test(mobile.trim())) next.mobile = "Enter a 10-digit mobile number";
-    if (address.trim().length < 6) next.address = "Please enter a delivery address";
-    if (village.trim().length < 2) next.village = "Please enter your village or town";
+    if (name.trim().length < 2) next['name'] = "Please enter your name";
+    if (!/^[0-9]{10}$/.test(mobile.replace(/\D/g, ""))) next['mobile'] = "Enter a 10-digit mobile number";
+    if (address.trim().length < 6) next['address'] = "Please enter a delivery address";
+    if (village.trim().length < 2) next['village'] = "Please enter your village or town";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -108,7 +116,7 @@ function CheckoutPage() {
                 Demo delivery address
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Full name" error={errors.name}>
+                <Field label="Full name" error={errors['name']}>
                   <input
                     className={inputClass}
                     value={name}
@@ -116,7 +124,7 @@ function CheckoutPage() {
                     placeholder="Farmer name"
                   />
                 </Field>
-                <Field label="Mobile number" error={errors.mobile} hint="Demo number, not verified">
+                <Field label="Mobile number" error={errors['mobile']} hint="Demo number, not verified">
                   <input
                     className={inputClass}
                     inputMode="numeric"
@@ -125,7 +133,7 @@ function CheckoutPage() {
                     placeholder="10-digit number"
                   />
                 </Field>
-                <Field label="Address" error={errors.address} className="sm:col-span-2">
+                <Field label="Address" error={errors['address']} className="sm:col-span-2">
                   <textarea
                     className={`${inputClass} min-h-24`}
                     value={address}
@@ -133,7 +141,7 @@ function CheckoutPage() {
                     placeholder="House, landmark, post office"
                   />
                 </Field>
-                <Field label="Village / Town" error={errors.village}>
+                <Field label="Village / Town" error={errors['village']}>
                   <input
                     className={inputClass}
                     value={village}
