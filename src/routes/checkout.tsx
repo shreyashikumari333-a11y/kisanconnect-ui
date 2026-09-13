@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Banknote, CreditCard, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/cards";
