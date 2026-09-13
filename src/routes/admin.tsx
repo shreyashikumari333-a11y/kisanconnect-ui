@@ -22,6 +22,7 @@ import { StatCard } from "@/components/cards";
 import { PageHeader } from "@/components/SiteLayout";
 import { DisclaimerBanner } from "@/components/DemoBadge";
 import { selectClass } from "@/components/FormField";
+import { useApp } from "@/context/AppContext";
 import {
   crops,
   districts,
@@ -30,6 +31,7 @@ import {
   popularCropsData,
   seedCategories,
   seedCategoryData,
+  demoOrders,
 } from "@/data/demo";
 
 export const Route = createFileRoute("/admin")({
@@ -80,6 +82,8 @@ function ChartCard({
 }
 
 function AdminPage() {
+  const { orders } = useApp();
+  const totalDemoOrders = 635 + Math.max(0, orders.length - demoOrders.length);
   const [range, setRange] = useState("Last 6 months");
   const [location, setLocation] = useState("");
   const [crop, setCrop] = useState("");
@@ -165,7 +169,7 @@ function AdminPage() {
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={Users} label="Total Demo Farmers" value="512" hint="Prototype count" />
           <StatCard icon={Store} label="Total Demo Vendors" value="54" hint="Prototype count" tone="earth" />
-          <StatCard icon={Sprout} label="Total Demo Orders" value="635" hint="All demo channels" tone="harvest" />
+          <StatCard icon={Sprout} label="Total Demo Orders" value={String(totalDemoOrders)} hint="All demo channels" tone="harvest" />
           <StatCard icon={Tractor} label="Equipment Requests" value="187" hint="Demo rentals" tone="sky" />
         </div>
 
