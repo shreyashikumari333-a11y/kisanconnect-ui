@@ -44,9 +44,9 @@ function VendorPage() {
   const addProduct = (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
-    if (name.trim().length < 3) next.name = "Enter a product name";
-    if (!/^\d+$/.test(price.trim()) || Number(price) <= 0) next.price = "Enter a valid price";
-    if (!/^\d+$/.test(stock.trim())) next.stock = "Enter stock quantity";
+    if (name.trim().length < 3) next['name'] = "Enter a product name";
+    if (!/^\d+$/.test(price.trim()) || Number(price) <= 0) next['price'] = "Enter a valid price";
+    if (!/^\d+$/.test(stock.trim())) next['stock'] = "Enter stock quantity";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -193,7 +193,7 @@ function VendorPage() {
                 Add demo product
               </h2>
               <form className="mt-4 grid gap-4" onSubmit={addProduct}>
-                <Field label="Product name" error={errors.name}>
+                <Field label="Product name" error={errors['name']}>
                   <input
                     className={inputClass}
                     value={name}
@@ -201,7 +201,7 @@ function VendorPage() {
                     placeholder="e.g. Hybrid Onion Seed"
                   />
                 </Field>
-                <Field label="Price (₹)" error={errors.price}>
+                <Field label="Price (₹)" error={errors['price']}>
                   <input
                     className={inputClass}
                     inputMode="numeric"
@@ -210,7 +210,7 @@ function VendorPage() {
                     placeholder="350"
                   />
                 </Field>
-                <Field label="Stock quantity" error={errors.stock}>
+                <Field label="Stock quantity" error={errors['stock']}>
                   <input
                     className={inputClass}
                     inputMode="numeric"
