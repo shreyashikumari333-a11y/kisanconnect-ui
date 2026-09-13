@@ -69,7 +69,7 @@ function CheckoutPage() {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (name.trim().length < 2) next['name'] = "Please enter your name";
-    if (!/^[0-9]{10}$/.test(mobile.trim())) next['mobile'] = "Enter a 10-digit mobile number";
+    if (!/^[0-9]{10}$/.test(mobile.replace(/\D/g, ""))) next['mobile'] = "Enter a 10-digit mobile number";
     if (address.trim().length < 6) next['address'] = "Please enter a delivery address";
     if (village.trim().length < 2) next['village'] = "Please enter your village or town";
     setErrors(next);
