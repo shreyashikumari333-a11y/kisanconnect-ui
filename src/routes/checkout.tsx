@@ -43,6 +43,14 @@ function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
+  // Demo profile is restored from local storage after hydration, so prefill once it arrives.
+  useEffect(() => {
+    if (!user) return;
+    setName((v) => v || user.name);
+    setMobile((v) => v || user.mobile.replace(/\D/g, ""));
+    setVillage((v) => v || user.village);
+  }, [user]);
+
   if (cart.length === 0) {
     return (
       <>
