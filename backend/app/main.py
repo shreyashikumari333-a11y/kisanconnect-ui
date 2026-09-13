@@ -15,7 +15,12 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
-app = FastAPI(title=APP_NAME, version="0.1.0")
+app = FastAPI(
+    title=APP_NAME,
+    version="0.1.0",
+    # FastAPI's default ReDoc bundle URL ("redoc@next") is missing on the CDN.
+    redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.5.0/bundles/redoc.standalone.js",
+)
 
 app.add_middleware(
     CORSMiddleware,
