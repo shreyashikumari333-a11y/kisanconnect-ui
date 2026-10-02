@@ -5,19 +5,21 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.firebase import db
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import HTMLResponse
+from app.marketplace import router as marketplace_router
 
 load_dotenv()
 
 APP_NAME = os.getenv("APP_NAME", "KisanSetu Backend")
-ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-    if origin.strip()
-]
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8080"
+).split(",")
 
 app = FastAPI(title=APP_NAME, version="0.1.0", redoc_url=None)
+app.include_router(marketplace_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,4 +42,18 @@ def redoc() -> HTMLResponse:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": APP_NAME, "message": "Backend is running"}
+    try:
+        db.collection("test").limit(1).stream()
+
+        return {
+            "status": "ok",
+            "service": APP_NAME,
+            "firebase": "connected"
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "firebase": "connection failed",
+            "message": str(e)
+        }

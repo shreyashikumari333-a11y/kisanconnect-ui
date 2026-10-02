@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/SiteLayout";
 import { DisclaimerBanner } from "@/components/DemoBadge";
 import { inputClass, selectClass } from "@/components/FormField";
 import { useApp } from "@/context/AppContext";
-import { crops, seedCatalog, seedCategories, vendors } from "@/data/demo";
+import { crops, seedCategories, vendors } from "@/data/demo";
 
 export const Route = createFileRoute("/marketplace")({
   head: () => ({
@@ -37,25 +37,66 @@ function Marketplace() {
   const [vendor, setVendor] = useState("");
   const [maxPrice, setMaxPrice] = useState(800);
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/marketplace/products"
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+
+      const data = await response.json();
+
+      const formattedProducts = data.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        crop: product.name,
+        category: product.category,
+        vendor: product.vendor,
+        price: product.price,
+        unit: product.unit,
+        rating: 4.5,
+        availability:
+          product.stock > 0
+            ? product.stock < 10
+              ? "Low Stock"
+              : "In Stock"
+            : "Out of Stock",
+      }));
+
+      setProducts(formattedProducts);
+      console.log("Firestore products:", formattedProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Unable to load products from server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProducts();
+}, []);
 
   const results = useMemo(
-    () =>
-      seedCatalog.filter(
-        (s) =>
-          (!query || `${s.name} ${s.crop} ${s.vendor}`.toLowerCase().includes(query.toLowerCase())) &&
-          (!category || s.category === category) &&
-          (!crop || s.crop === crop) &&
-          (!vendor || s.vendor === vendor) &&
-          s.price <= maxPrice,
-      ),
-    [query, category, crop, vendor, maxPrice],
-  );
-
+  () =>
+    products.filter(
+      (s) =>
+        (!query ||
+          `${s.name} ${s.crop} ${s.vendor}`
+            .toLowerCase()
+            .includes(query.toLowerCase())) &&
+        (!category || s.category.toLowerCase() === category.toLowerCase()) &&
+        (!crop || s.crop.toLowerCase() === crop.toLowerCase()) &&
+        (!vendor || s.vendor.toLowerCase() === vendor.toLowerCase()) &&
+        Number(s.price) <= maxPrice,
+    ),
+  [products, query, category, crop, vendor, maxPrice],
+);
   const reset = () => {
     setQuery("");
     setCategory("");
@@ -166,7 +207,7 @@ function Marketplace() {
 
           <section>
             <p className="text-sm font-semibold text-muted-foreground">
-              Showing {results.length} of {seedCatalog.length} demo products
+              Showing {results.length} of {products.length} products
             </p>
             <div className="mt-5">
               {loading ? (
