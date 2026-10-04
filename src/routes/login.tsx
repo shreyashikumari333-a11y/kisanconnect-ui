@@ -1,10 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 import { Sprout, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Field, inputClass } from "@/components/FormField";
 import { DisclaimerBanner } from "@/components/DemoBadge";
 import { useApp } from "@/context/AppContext";
+import { auth } from "@/lib/firebase";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -15,22 +20,30 @@ export const Route = createFileRoute("/login")({
         content:
           "Create a demo farmer account or continue as a demo farmer to explore the KisanSetu prototype.",
       },
-      { property: "og:title", content: "Farmer Login & Register — KisanSetu Demo" },
+      {
+        property: "og:title",
+        content: "Farmer Login & Register — KisanSetu Demo",
+      },
       {
         property: "og:description",
-        content: "Prototype login screen for the KisanSetu college mini-project. No real data used.",
+        content:
+          "Prototype login screen for the KisanSetu college mini-project. No real data used.",
       },
     ],
   }),
   component: LoginPage,
 });
 
-type Errors = Partial<Record<"name" | "mobile" | "email" | "password" | "village", string>>;
+type Errors = Partial<
+  Record<"name" | "mobile" | "email" | "password" | "village", string>
+>;
 
 function LoginPage() {
   const navigate = useNavigate();
   const { login } = useApp();
+
   const [mode, setMode] = useState<"login" | "register">("register");
+
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -38,41 +51,96 @@ function LoginPage() {
     password: "",
     village: "",
   });
+
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set =
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   function validate(): boolean {
     const e: Errors = {};
+
     if (mode === "register") {
-      if (form.name.trim().length < 2) e.name = "Please enter your name.";
-      if (!/^\d{10}$/.test(form.mobile.trim())) e.mobile = "Enter a 10 digit mobile number.";
-      if (form.village.trim().length < 2) e.village = "Please enter your village or town.";
+      if (form.name.trim().length < 2) {
+        e.name = "Please enter your name.";
+      }
+
+      if (!/^\d{10}$/.test(form.mobile.trim())) {
+        e.mobile = "Enter a 10 digit mobile number.";
+      }
+
+      if (form.village.trim().length < 2) {
+        e.village = "Please enter your village or town.";
+      }
     }
-    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) e.email = "Enter a valid email address.";
-    if (form.password.length < 6) e.password = "Password must be at least 6 characters.";
+
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      e.email = "Enter a valid email address.";
+    }
+
+    if (form.password.length < 6) {
+      e.password = "Password must be at least 6 characters.";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function submit(ev: React.FormEvent) {
+  async function submit(ev: React.FormEvent) {
     ev.preventDefault();
+
     if (!validate()) return;
+
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      let userCredential;
+
+      if (mode === "register") {
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          form.email.trim(),
+          form.password
+        );
+      } else {
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          form.email.trim(),
+          form.password
+        );
+      }
+
+      const firebaseUser = userCredential.user;
+
       login({
         name: form.name.trim() || "Demo Farmer",
         mobile: form.mobile || "90000 00000",
-        email: form.email.trim(),
+        email: firebaseUser.email || form.email.trim(),
         village: form.village.trim() || "Demo Village",
-        isDemo: true,
+        isDemo: false,
       });
-      setLoading(false);
-      toast.success(mode === "login" ? "Logged in to demo account" : "Demo account created");
+
+      toast.success(
+        mode === "register"
+          ? "Account created successfully"
+          : "Logged in successfully"
+      );
+
       navigate({ to: "/dashboard" });
-    }, 700);
+    } catch (error) {
+      console.error("Authentication error:", error);
+
+      toast.error(
+        mode === "register"
+          ? "Registration failed. Email may already be registered."
+          : "Login failed. Check your email and password."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   function demoLogin() {
@@ -83,6 +151,7 @@ function LoginPage() {
       village: "Rampur, Demo District",
       isDemo: true,
     });
+
     toast.success("Signed in as Demo Farmer");
     navigate({ to: "/dashboard" });
   }
@@ -91,18 +160,23 @@ function LoginPage() {
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
       <div>
         <span className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-          <Sprout className="h-4 w-4" aria-hidden="true" /> Farmer Access
+          <Sprout className="h-4 w-4" aria-hidden="true" />
+          Farmer Access
         </span>
+
         <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight">
           Welcome to KisanSetu
         </h1>
+
         <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground">
-          Register once and get seed recommendations, nearby demo vendors, equipment rentals and
-          worker contacts tailored to your village.
+          Register once and get seed recommendations, nearby demo vendors,
+          equipment rentals and worker contacts tailored to your village.
         </p>
+
         <DisclaimerBanner className="mt-8" variant="warn">
-          This is a college project prototype. Demo accounts and data are used for demonstration
-          purposes. Please do not enter real passwords, Aadhaar numbers or bank details.
+          This is a college project prototype. Demo accounts and data are used
+          for demonstration purposes. Please do not enter real passwords,
+          Aadhaar numbers or bank details.
         </DisclaimerBanner>
       </div>
 
@@ -139,6 +213,7 @@ function LoginPage() {
               />
             </Field>
           )}
+
           {mode === "register" && (
             <Field label="Mobile Number" error={errors.mobile}>
               <input
@@ -151,6 +226,7 @@ function LoginPage() {
               />
             </Field>
           )}
+
           <Field label="Email" error={errors.email}>
             <input
               className={inputClass}
@@ -161,16 +237,24 @@ function LoginPage() {
               autoComplete="email"
             />
           </Field>
-          <Field label="Password" error={errors.password} hint="Minimum 6 characters (demo only).">
+
+          <Field
+            label="Password"
+            error={errors.password}
+            hint="Minimum 6 characters (demo only)."
+          >
             <input
               className={inputClass}
               value={form.password}
               onChange={set("password")}
               type="password"
               placeholder="••••••"
-              autoComplete="new-password"
+              autoComplete={
+                mode === "register" ? "new-password" : "current-password"
+              }
             />
           </Field>
+
           {mode === "register" && (
             <Field label="Village / Location" error={errors.village}>
               <input
@@ -187,7 +271,11 @@ function LoginPage() {
             disabled={loading}
             className="mt-2 rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 disabled:opacity-70"
           >
-            {loading ? "Please wait…" : mode === "register" ? "Register" : "Login"}
+            {loading
+              ? "Please wait…"
+              : mode === "register"
+                ? "Register"
+                : "Login"}
           </button>
 
           <div className="relative py-2 text-center">

@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Package } from "lucide-react";
 import { EmptyState, OrderStatusPill } from "@/components/cards";
 import { PageHeader } from "@/components/SiteLayout";
 import { DisclaimerBanner } from "@/components/DemoBadge";
 import { selectClass } from "@/components/FormField";
-import { useApp } from "@/context/AppContext";
 import { orderStatuses } from "@/data/demo";
 
 export const Route = createFileRoute("/orders")({
@@ -26,9 +25,107 @@ export const Route = createFileRoute("/orders")({
   component: OrdersPage,
 });
 
+type BackendOrder = {
+  id: string;
+  items: {
+    id: string;
+    name: string;
+    vendor: string;
+    price: number;
+    unit: string;
+    quantity: number;
+  }[];
+  total: number;
+  status: string;
+  created_at?: string | null;
+};
+
 function OrdersPage() {
-  const { orders } = useApp();
+  const [orders, setOrders] = useState<import("@/data/demo").Order[]>([]);
   const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  try {
+    setUpdatingId(orderId);
+
+    const response = await fetch(
+      `http://localhost:8000/api/orders/${orderId}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update order status");
+    }
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: newStatus as import("@/data/demo").OrderStatus,
+            }
+          : order,
+      ),
+    );
+  } catch (error) {
+    console.error("Failed to update order status:", error);
+  } finally {
+    setUpdatingId(null);
+  }
+};
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/orders/");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch orders");
+        }
+
+        const data: BackendOrder[] = await response.json();
+
+        const formattedOrders = data.map((order) => {
+          const firstItem = order.items[0];
+
+          return {
+            id: order.id,
+            product: firstItem
+              ? `${firstItem.name}${
+                  order.items.length > 1
+                    ? ` +${order.items.length - 1} more`
+                    : ""
+                }`
+              : "Order",
+            vendor: firstItem?.vendor ?? "KisanSetu Demo Vendor",
+            date: order.created_at
+              ? order.created_at.slice(0, 10)
+              : new Date().toISOString().slice(0, 10),
+            amount: order.total,
+            status: order.status as import("@/data/demo").OrderStatus,
+          };
+        });
+
+        setOrders(formattedOrders);
+      } catch (error) {
+        console.error("Failed to load orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, []);
 
   const filtered = useMemo(
     () => orders.filter((o) => !status || o.status === status),
@@ -39,7 +136,7 @@ function OrdersPage() {
     <>
       <PageHeader
         eyebrow="Order management"
-        title="Your demo orders"
+        title="Your orders"
         description="Every order below is a prototype record. Delivery tracking is simulated for demonstration."
       />
 
@@ -64,8 +161,10 @@ function OrdersPage() {
             </select>
           </label>
           <p className="text-sm font-semibold text-muted-foreground">
-            {filtered.length} demo {filtered.length === 1 ? "order" : "orders"}
-          </p>
+  {loading
+    ? "Loading orders..."
+    : `${filtered.length} ${filtered.length === 1 ? "order" : "orders"}`}
+</p>
         </div>
 
         {filtered.length === 0 ? (
@@ -100,7 +199,18 @@ function OrdersPage() {
                     {o.vendor} · {o.date}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-3">
-                    <OrderStatusPill status={o.status} />
+                   <select
+  value={o.status}
+  disabled={updatingId === o.id}
+  onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+  className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+>
+  <option value="Order Placed">Order Placed</option>
+  <option value="Processing">Processing</option>
+  <option value="Ready">Ready</option>
+  <option value="Out for Demo Delivery">Out for Demo Delivery</option>
+  <option value="Delivered">Delivered</option>
+</select>
                     <span className="font-display text-lg font-extrabold">₹{o.amount}</span>
                   </div>
                 </article>
@@ -128,9 +238,21 @@ function OrdersPage() {
                       <td className="px-5 py-4 text-muted-foreground">{o.vendor}</td>
                       <td className="px-5 py-4 text-muted-foreground">{o.date}</td>
                       <td className="px-5 py-4 font-bold">₹{o.amount}</td>
-                      <td className="px-5 py-4">
-                        <OrderStatusPill status={o.status} />
-                      </td>
+                      
+ <td className="px-5 py-4">
+  <select
+    value={o.status}
+    disabled={updatingId === o.id}
+    onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+    className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+  >
+    <option value="Order Placed">Order Placed</option>
+    <option value="Processing">Processing</option>
+    <option value="Ready">Ready</option>
+    <option value="Out for Demo Delivery">Out for Demo Delivery</option>
+    <option value="Delivered">Delivered</option>
+  </select>
+</td>
                     </tr>
                   ))}
                 </tbody>

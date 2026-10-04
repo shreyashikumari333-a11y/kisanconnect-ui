@@ -9,6 +9,7 @@ from app.firebase import db
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import HTMLResponse
 from app.marketplace import router as marketplace_router
+from app.orders import router as orders_router
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ ALLOWED_ORIGINS = os.getenv(
 
 app = FastAPI(title=APP_NAME, version="0.1.0", redoc_url=None)
 app.include_router(marketplace_router)
+app.include_router(orders_router)
 
 app.add_middleware(
     CORSMiddleware,
